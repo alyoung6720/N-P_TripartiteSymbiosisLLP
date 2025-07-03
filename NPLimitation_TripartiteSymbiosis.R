@@ -38,7 +38,20 @@ Nfix <- read.csv("Field_GClog.csv") %>%
 LeafNuts <- read.csv("Field_LeafNutContent.csv")
 
 data1 <- merge(Nfix, BiomassNoduleAMF, by=c("Site", "Treatment", "Plant_ID"), all=T)
-data2 <- merge(data1, LeafNuts, by=c("Site", "Treatment", "Plant_ID", "Group"), all=T)
+data2 <- merge(data1, LeafNuts, by=c("Site", "Treatment", "Plant_ID", "Group"), all=T) %>%
+  group_by(Site, Treatment, Plant_ID) %>%
+  mutate(Rate = ((AvgEthPPM*0.01*10^6)/(24.45*0.75)))
+  # rate is nmol C2H4 per hour
+
+Summarized <- data2 %>%
+  group_by(Treatment) %>%
+  summarise(mANPP = mean(ANPP, na.rm=T),seANPP = sd(ANPP, na.rm = TRUE) / sqrt(sum(!is.na(ANPP))),
+            mNod = mean(NodNum, na.rm=T),seNod = sd(NodNum, na.rm = TRUE) / sqrt(sum(!is.na(NodNum))),
+            mAMF = mean(PercMC, na.rm=T),seAMF = sd(PercMC, na.rm = TRUE) / sqrt(sum(!is.na(PercMC))),
+            mRate = mean(Rate, na.rm=T),seRate = sd(Rate, na.rm = TRUE) / sqrt(sum(!is.na(Rate))),
+            mANPP = mean(ANPP, na.rm=T),seANPP = sd(ANPP, na.rm = TRUE) / sqrt(sum(!is.na(ANPP))),
+            mN= mean(N, na.rm=T),seN = sd(N, na.rm = TRUE) / sqrt(sum(!is.na(N))),
+            mP = mean(P, na.rm=T),seP = sd(P, na.rm = TRUE) / sqrt(sum(!is.na(P))))
 
 # CHANGE SITE, REPLICATE, AND TREATMENT TO FACTOR #
 data2$Site <- as.factor(data2$Site)
@@ -241,18 +254,6 @@ ols_test_normality(resP)
 result = leveneTest(P ~ interaction(Treatment), data = data2)
 print(result)
 
-# Shapiro-Wilk, Kolmogorov-Smirnov, and Anderson-Darling tests all improved after transformation #
-res_P <- lmer(log(P) ~ Treatment + (1|Site/Replicate), data = data2)
-resP <- residuals(res_P, type="pearson")
-plot(resP)
-qqnorm(resP)
-simulateResiduals(fittedModel = res_P, plot = TRUE)
-ols_test_normality(resP)
-# Using leveneTest() to test for homoscedasticity
-result = leveneTest(log(P) ~ interaction(Treatment), data = data2)
-print(result)
-
-
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
 e <- lmer(P ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
 anova(e)
@@ -279,38 +280,26 @@ ggplot(data=barGraphStats(data=data2, variable="P",byFactorNames=c("Treatment"))
 # N-Fixation #
 
 ## CHECK FOR NORMALITY, ETC ####
-hist(data2$AvgEthPPM)
-res_fix <- lmer(AvgEthPPM ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+hist(data2$Rate)
+res_fix <- lmer(Rate ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
 resfix <- residuals(res_fix, type="pearson")
 plot(resfix)
 qqnorm(resfix)
 simulateResiduals(fittedModel = res_fix, plot = TRUE)
 ols_test_normality(resfix)
 # Using leveneTest() to test for homoscedasticity
-result = leveneTest(AvgEthPPM ~ interaction(Treatment), data = data2)
+result = leveneTest(Rate ~ interaction(Treatment), data = data2)
 print(result)
 
 
-res_fix <- lmer(sqrt(AvgEthPPM) ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
-resfix <- residuals(res_fix, type="pearson")
-plot(resfix)
-qqnorm(resfix)
-simulateResiduals(fittedModel = res_fix, plot = TRUE)
-ols_test_normality(resfix)
-# Using leveneTest() to test for homoscedasticity
-result = leveneTest(sqrt(AvgEthPPM) ~ interaction(Treatment), data = data2)
-print(result)
-
-
-e <- lmer(sqrt(AvgEthPPM) ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+e <- lmer(Rate ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
 anova(e)
 r.squaredGLMM(e)
 
-
-ggplot(data=barGraphStats(data=subset(data2, NodNum<90), variable="AvgEthPPM",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
+ggplot(data=barGraphStats(data=data2, variable="Rate",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("Ethylene Produced (ppm)") +
+  ylab("Ethylene Produced (nmol per hour)") +
   xlab("Treatment") +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -319,3 +308,4 @@ ggplot(data=barGraphStats(data=subset(data2, NodNum<90), variable="AvgEthPPM",by
         legend.position="none",axis.text.y=element_text(size = 40))
 # 1400 x 1400 #
 
+plot(e)
