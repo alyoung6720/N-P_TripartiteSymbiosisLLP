@@ -8,6 +8,7 @@ library(MASS)
 library(lmerTest)
 library(MuMIn)
 library(emmeans)
+library(scales)
 
 # FUNCTION FOR BAR GRAPHS #
 barGraphStats <- function(data, variable, byFactorNames) {
@@ -43,15 +44,36 @@ data2 <- merge(data1, LeafNuts, by=c("Site", "Treatment", "Plant_ID", "Group"), 
   mutate(Rate = ((AvgEthPPM*0.01*10^6)/(24.45*0.75)))
   # rate is nmol C2H4 per hour
 
+library(dplyr)
+
 Summarized <- data2 %>%
   group_by(Treatment) %>%
-  summarise(mANPP = mean(ANPP, na.rm=T),seANPP = sd(ANPP, na.rm = TRUE) / sqrt(sum(!is.na(ANPP))),
-            mNod = mean(NodNum, na.rm=T),seNod = sd(NodNum, na.rm = TRUE) / sqrt(sum(!is.na(NodNum))),
-            mAMF = mean(PercMC, na.rm=T),seAMF = sd(PercMC, na.rm = TRUE) / sqrt(sum(!is.na(PercMC))),
-            mRate = mean(Rate, na.rm=T),seRate = sd(Rate, na.rm = TRUE) / sqrt(sum(!is.na(Rate))),
-            mANPP = mean(ANPP, na.rm=T),seANPP = sd(ANPP, na.rm = TRUE) / sqrt(sum(!is.na(ANPP))),
-            mN= mean(N, na.rm=T),seN = sd(N, na.rm = TRUE) / sqrt(sum(!is.na(N))),
-            mP = mean(P, na.rm=T),seP = sd(P, na.rm = TRUE) / sqrt(sum(!is.na(P))))
+  summarise(
+    mANPP = mean(ANPP, na.rm = TRUE),
+    seANPP = sd(ANPP, na.rm = TRUE) / sqrt(sum(!is.na(ANPP))),
+    nANPP = sum(!is.na(ANPP)),
+    
+    mNod = mean(NodNum, na.rm = TRUE),
+    seNod = sd(NodNum, na.rm = TRUE) / sqrt(sum(!is.na(NodNum))),
+    nNod = sum(!is.na(NodNum)),
+    
+    mAMF = mean(PercMC, na.rm = TRUE),
+    seAMF = sd(PercMC, na.rm = TRUE) / sqrt(sum(!is.na(PercMC))),
+    nAMF = sum(!is.na(PercMC)),
+    
+    mRate = mean(Rate, na.rm = TRUE),
+    seRate = sd(Rate, na.rm = TRUE) / sqrt(sum(!is.na(Rate))),
+    nRate = sum(!is.na(Rate)),
+    
+    mN = mean(N, na.rm = TRUE),
+    seN = sd(N, na.rm = TRUE) / sqrt(sum(!is.na(N))),
+    nN = sum(!is.na(N)),
+    
+    mP = mean(P, na.rm = TRUE),
+    seP = sd(P, na.rm = TRUE) / sqrt(sum(!is.na(P))),
+    nP = sum(!is.na(P))
+  )
+
 
 # CHANGE SITE, REPLICATE, AND TREATMENT TO FACTOR #
 data2$Site <- as.factor(data2$Site)
@@ -102,19 +124,22 @@ ggplot(data=barGraphStats(data=data2, variable="ANPP",byFactorNames=c("Treatment
   annotate("text", x= 1, y = 28, label= "a", size = 15)+ 
   annotate("text", x= 2, y = 26, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 43, label= "b", size = 15)+ 
+  scale_x_discrete(labels = c("C" = "Control",
+                                "N" = "N (2Y)",
+                                "NP" = "N+P (1Y)")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
         legend.position="none",axis.text.y=element_text(size = 40))
-# EXPORT 1400 x 1400 #
+# EXPORT 900 x 700 #
 
 
 ##########################
 # Nodule Number #
 
 ## CHECK FOR NORMALITY, ETC ####
-hist(data$NodNum)
+hist(data2$NodNum)
 res_Nod <- lmer(NodNum ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
 resnod <- residuals(res_Nod, type="pearson")
 plot(resnod)
@@ -139,7 +164,7 @@ print(result)
 
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-b <- lmer(log1p(NodNum) ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+b <- lmer(log1p(NodNum) ~ Treatment + (1|Site:Group), data = data2)
 anova(b)
 r.squaredGLMM(b)
 emmeans(b, pairwise ~ Treatment, adjust="BH") 
@@ -153,12 +178,15 @@ ggplot(data=barGraphStats(data=data2, variable="NodNum",byFactorNames=c("Treatme
   annotate("text", x= 1, y = 9, label= "ab", size = 15)+ 
   annotate("text", x= 2, y = 6, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 21, label= "b", size = 15)+ 
+  scale_x_discrete(labels = c("C" = "Control",
+                              "N" = "N (2Y)",
+                              "NP" = "N+P (1Y)")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
         legend.position="none",axis.text.y=element_text(size = 40))
-# 1400 x 1400 #
+# 900 x 700 #
 
 
 
@@ -179,7 +207,7 @@ print(result)
 
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-c <- lmer(PercMC ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+c <- lmer(PercMC ~ Treatment + (1|Site:Group), data = data2)
 anova(c)
 r.squaredGLMM(c)
 emmeans(c, pairwise ~ Treatment, adjust="BH")
@@ -188,17 +216,20 @@ emmeans(c, pairwise ~ Treatment, adjust="BH")
 ggplot(data=barGraphStats(data=data2, variable="PercMC",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("% AMF Root Colonization") +
+  ylab("AMF Colonization (%)") +
   xlab("Treatment") +
   annotate("text", x= 1, y = 56, label= "b", size = 15)+ 
   annotate("text", x= 2, y = 39, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 49, label= "b", size = 15)+ 
+  scale_x_discrete(labels = c("C" = "Control",
+                              "N" = "N (2Y)",
+                              "NP" = "N+P (1Y)")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
         legend.position="none",axis.text.y=element_text(size = 40))
-# 1400 x 1400 #
+# 900 x 700 #
 
 
 #################################
@@ -219,7 +250,7 @@ print(result)
 
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-d <- lmer(N ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+d <- lmer(N ~ Treatment + (1|Site:Group), data = data2)
 anova(d)
 r.squaredGLMM(d)
 emmeans(d, pairwise ~ Treatment, adjust="BH") 
@@ -228,17 +259,20 @@ emmeans(d, pairwise ~ Treatment, adjust="BH")
 ggplot(data=barGraphStats(data=data2, variable="N",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("Leaf Nitrogen Content (%)") +
+  ylab("Leaf N Content (%)") +
   xlab("Treatment") +
   annotate("text", x= 1, y = 1.9, label= "a", size = 15)+ 
   annotate("text", x= 2, y = 1.8, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 2.2, label= "b", size = 15)+ 
+  scale_x_discrete(labels = c("C" = "Control",
+                              "N" = "N (2Y)",
+                              "NP" = "N+P (1Y)")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
         legend.position="none",axis.text.y=element_text(size = 40))
-# EXPORT 1400 x 1400 #
+# EXPORT 900 x 700 #
 
 
 # Phosphorus #
@@ -255,7 +289,7 @@ result = leveneTest(P ~ interaction(Treatment), data = data2)
 print(result)
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-e <- lmer(P ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+e <- lmer(P ~ Treatment + (1|Site:Group), data = data2)
 anova(e)
 r.squaredGLMM(e)
 emmeans(e, pairwise ~ Treatment, adjust="BH") 
@@ -264,17 +298,20 @@ emmeans(e, pairwise ~ Treatment, adjust="BH")
 ggplot(data=barGraphStats(data=data2, variable="P",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("Leaf Phosphorus Content (%)") +
+  ylab("Leaf P Content (%)") +
   xlab("Treatment") +
   annotate("text", x= 1, y = 0.12, label= "a", size = 15)+ 
   annotate("text", x= 2, y = 0.115, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 0.18, label= "b", size = 15)+ 
+  scale_x_discrete(labels = c("C" = "Control",
+                              "N" = "N (2Y)",
+                              "NP" = "N+P (1Y)")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
         legend.position="none",axis.text.y=element_text(size = 40))
-# EXPORT 1400 x 1400 #
+# EXPORT 900 x 700 #
 
 ##########################
 # N-Fixation #
@@ -299,13 +336,17 @@ r.squaredGLMM(e)
 ggplot(data=barGraphStats(data=data2, variable="Rate",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("Ethylene Produced (nmol per hour)") +
+  ylab("Ethylene (nmol / hr)") +
   xlab("Treatment") +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
+  scale_x_discrete(labels = c("C" = "Control",
+                              "N" = "N (2Y)",
+                              "NP" = "N+P (1Y)")) +
+  scale_y_continuous(labels = label_scientific()) + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
         legend.position="none",axis.text.y=element_text(size = 40))
-# 1400 x 1400 #
+# 900 x 700 #
 
 plot(e)
