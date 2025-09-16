@@ -42,7 +42,8 @@ data1 <- merge(Nfix, BiomassNoduleAMF, by=c("Site", "Treatment", "Plant_ID"), al
 data2 <- merge(data1, LeafNuts, by=c("Site", "Treatment", "Plant_ID", "Group"), all=T) %>%
   group_by(Site, Treatment, Plant_ID) %>%
   mutate(Rate = ((AvgEthPPM*0.01*10^6)/(24.45*0.75))) %>%
-  mutate(Rate = ifelse(is.na(Rate), 0, Rate))
+  mutate(Rate = ifelse(is.na(Rate), 0, Rate)) %>%
+  mutate(Rate = ifelse(Plant_ID=="2-N-15", NA, Rate))
   # rate is nmol C2H4 per hour
 
 
@@ -325,7 +326,7 @@ ggplot(data=barGraphStats(data=data2, variable="P",byFactorNames=c("Treatment"))
 
 ## CHECK FOR NORMALITY, ETC ####
 hist(data2$Rate)
-res_fix <- lmer(sqrt(Rate) ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+res_fix <- lmer(log1p(Rate) ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
 resfix <- residuals(res_fix, type="pearson")
 plot(resfix)
 qqnorm(resfix)
