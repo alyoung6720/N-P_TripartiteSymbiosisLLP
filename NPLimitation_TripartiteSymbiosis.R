@@ -125,8 +125,8 @@ ggplot(data=barGraphStats(data=data2, variable="ANPP",byFactorNames=c("Treatment
   annotate("text", x= 2, y = 26, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 43, label= "b", size = 15)+ 
   scale_x_discrete(labels = c("C" = "Control",
-                                "N" = "N (2Y)",
-                                "NP" = "N+P (1Y)")) +
+                                "N" = "Repeated N",
+                                "NP" = "Co-Addition")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
@@ -179,8 +179,8 @@ ggplot(data=barGraphStats(data=data2, variable="NodNum",byFactorNames=c("Treatme
   annotate("text", x= 2, y = 6, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 21, label= "b", size = 15)+ 
   scale_x_discrete(labels = c("C" = "Control",
-                              "N" = "N (2Y)",
-                              "NP" = "N+P (1Y)")) +
+                              "N" = "Repeated N",
+                              "NP" = "Co-Addition")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
@@ -222,8 +222,8 @@ ggplot(data=barGraphStats(data=data2, variable="PercMC",byFactorNames=c("Treatme
   annotate("text", x= 2, y = 39, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 49, label= "b", size = 15)+ 
   scale_x_discrete(labels = c("C" = "Control",
-                              "N" = "N (2Y)",
-                              "NP" = "N+P (1Y)")) +
+                              "N" = "Repeated N",
+                              "NP" = "Co-Addition")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
@@ -265,8 +265,8 @@ ggplot(data=barGraphStats(data=data2, variable="N",byFactorNames=c("Treatment"))
   annotate("text", x= 2, y = 1.8, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 2.2, label= "b", size = 15)+ 
   scale_x_discrete(labels = c("C" = "Control",
-                              "N" = "N (2Y)",
-                              "NP" = "N+P (1Y)")) +
+                              "N" = "Repeated N",
+                              "NP" = "Co-Addition")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
@@ -304,8 +304,8 @@ ggplot(data=barGraphStats(data=data2, variable="P",byFactorNames=c("Treatment"))
   annotate("text", x= 2, y = 0.115, label= "a", size = 15)+ 
   annotate("text", x= 3, y = 0.18, label= "b", size = 15)+ 
   scale_x_discrete(labels = c("C" = "Control",
-                              "N" = "N (2Y)",
-                              "NP" = "N+P (1Y)")) +
+                              "N" = "Repeated N",
+                              "NP" = "Co-Addition")) +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
@@ -318,7 +318,7 @@ ggplot(data=barGraphStats(data=data2, variable="P",byFactorNames=c("Treatment"))
 
 ## CHECK FOR NORMALITY, ETC ####
 hist(data2$Rate)
-res_fix <- lmer(Rate ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
+res_fix <- lmer(sqrt(Rate) ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
 resfix <- residuals(res_fix, type="pearson")
 plot(resfix)
 qqnorm(resfix)
@@ -329,9 +329,11 @@ result = leveneTest(Rate ~ interaction(Treatment), data = data2)
 print(result)
 
 
-e <- lmer(Rate ~ Treatment + (1|Site) + (1|Site:Group), data = data2)
-anova(e)
-r.squaredGLMM(e)
+f <- lmer(log1p(Rate) ~ Treatment + (1|Site:Group), data = data2)
+anova(f)
+r.squaredGLMM(f)
+emmeans(f, pairwise ~ Treatment, adjust="BH") 
+
 
 ggplot(data=barGraphStats(data=data2, variable="Rate",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
@@ -340,9 +342,9 @@ ggplot(data=barGraphStats(data=data2, variable="Rate",byFactorNames=c("Treatment
   xlab("Treatment") +
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   scale_x_discrete(labels = c("C" = "Control",
-                              "N" = "N (2Y)",
-                              "NP" = "N+P (1Y)")) +
-  scale_y_continuous(labels = label_scientific()) + 
+                              "N" = "Repeated N",
+                              "NP" = "Co-Addition")) +
+  scale_y_continuous(labels = scales::number_format(scale = 1e-3, suffix = "k")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         text = element_text(size = 40),axis.text.x=element_text(size = 30), 
