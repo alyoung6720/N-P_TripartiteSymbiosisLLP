@@ -164,7 +164,8 @@ print(result)
 
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-b <- lmer(log1p(NodNum) ~ Treatment + (1|Site:Group), data = data2)
+b <- lmer(log1p(NodNum) ~ Treatment + (1|Site:Group), data = data2)  #(1|Site) has zero variane so removed
+summary(b)
 anova(b)
 r.squaredGLMM(b)
 emmeans(b, pairwise ~ Treatment, adjust="BH") 
@@ -207,7 +208,8 @@ print(result)
 
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-c <- lmer(PercMC ~ Treatment + (1|Site:Group), data = data2)
+c <- lmer(PercMC ~ Treatment + (1|Site:Group), data = data2) #(1|Site) has zero variane so removed
+summary(c)
 anova(c)
 r.squaredGLMM(c)
 emmeans(c, pairwise ~ Treatment, adjust="BH")
@@ -250,7 +252,8 @@ print(result)
 
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-d <- lmer(N ~ Treatment + (1|Site:Group), data = data2)
+d <- lmer(N ~ Treatment + (1|Site), data = data2) #(1|Site:Group) has zero variane so removed
+summary(d)
 anova(d)
 r.squaredGLMM(d)
 emmeans(d, pairwise ~ Treatment, adjust="BH") 
@@ -289,7 +292,8 @@ result = leveneTest(P ~ interaction(Treatment), data = data2)
 print(result)
 
 # RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
-e <- lmer(P ~ Treatment + (1|Site:Group), data = data2)
+e <- lmer(P ~ Treatment + (1|Site), data = data2) #(1|Site:Group) has zero variane so removed
+summary(e)
 anova(e)
 r.squaredGLMM(e)
 emmeans(e, pairwise ~ Treatment, adjust="BH") 
@@ -329,7 +333,8 @@ result = leveneTest(Rate ~ interaction(Treatment), data = data2)
 print(result)
 
 
-f <- lmer(log1p(Rate) ~ Treatment + (1|Site:Group), data = data2)
+f <- lmer(log1p(Rate) ~ Treatment + (1|Site), data = data2) #(1|Site:Group) has zero variane so removed
+summary(f)
 anova(f)
 r.squaredGLMM(f)
 emmeans(f, pairwise ~ Treatment, adjust="BH") 
