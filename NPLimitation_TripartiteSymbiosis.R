@@ -33,7 +33,7 @@ BiomassNoduleAMF <- read.csv("Field_ANPP_NodNum.csv")
 
 Nfix <- read.csv("Field_GClog.csv") %>%
   group_by(Site, Treatment, Plant_ID) %>%
-  mutate(Ethylene_Area = ifelse(Ethylene_Area <1, 0, Ethylene_Area)) %>%
+  #mutate(Ethylene_Area = ifelse(Ethylene_Area <1, 0, Ethylene_Area)) %>%
   summarise(Area = mean(Ethylene_Area, na.rm=T), AvgEthPPM = (100*Area)/204.6585)
 
 LeafNuts <- read.csv("Field_LeafNutContent.csv")
@@ -41,8 +41,11 @@ LeafNuts <- read.csv("Field_LeafNutContent.csv")
 data1 <- merge(Nfix, BiomassNoduleAMF, by=c("Site", "Treatment", "Plant_ID"), all=T)
 data2 <- merge(data1, LeafNuts, by=c("Site", "Treatment", "Plant_ID", "Group"), all=T) %>%
   group_by(Site, Treatment, Plant_ID) %>%
-  mutate(Rate = ((AvgEthPPM*0.01*10^6)/(24.45*0.75)))
+  mutate(Rate = ((AvgEthPPM*0.01*10^6)/(24.45*0.75))) %>%
+  mutate(Rate = ifelse(is.na(Rate), 0, Rate))
   # rate is nmol C2H4 per hour
+
+
 
 library(dplyr)
 
@@ -333,7 +336,7 @@ result = leveneTest(Rate ~ interaction(Treatment), data = data2)
 print(result)
 
 
-f <- lmer(log1p(Rate) ~ Treatment + (1|Site), data = data2) #(1|Site:Group) has zero variane so removed
+f <- lmer(log1p(Rate) ~ Treatment + (1|Site), data = data2) #(1|Site:Group) has zero variance so removed
 summary(f)
 anova(f)
 r.squaredGLMM(f)
@@ -345,6 +348,9 @@ ggplot(data=barGraphStats(data=data2, variable="Rate",byFactorNames=c("Treatment
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
   ylab("Ethylene (nmol / hr)") +
   xlab("Treatment") +
+  annotate("text", x= 1, y = 7000, label= "ab", size = 15)+ 
+  annotate("text", x= 2, y = 4000, label= "a", size = 15)+ 
+  annotate("text", x= 3, y = 20000, label= "b", size = 15)+ 
   scale_fill_manual(values = c("#C9B793", "#6E6C81", "#93AD90")) +
   scale_x_discrete(labels = c("C" = "Control",
                               "N" = "Repeated N",
