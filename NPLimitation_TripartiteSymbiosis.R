@@ -266,7 +266,7 @@ emmeans(d, pairwise ~ Treatment, adjust="BH")
 ggplot(data=barGraphStats(data=data2, variable="N",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("Leaf N Content (%)") +
+  ylab("Foliar N Content (%)") +
   xlab("Treatment") +
   annotate("text", x= 1, y = 1.9, label= "a", size = 15)+ 
   annotate("text", x= 2, y = 1.8, label= "a", size = 15)+ 
@@ -306,7 +306,7 @@ emmeans(e, pairwise ~ Treatment, adjust="BH")
 ggplot(data=barGraphStats(data=data2, variable="P",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
   geom_bar(stat='identity', position="dodge", width=0.75) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2, size=1, position=position_dodge(0.9)) +
-  ylab("Leaf P Content (%)") +
+  ylab("Foliar P Content (%)") +
   xlab("Treatment") +
   annotate("text", x= 1, y = 0.12, label= "a", size = 15)+ 
   annotate("text", x= 2, y = 0.115, label= "a", size = 15)+ 
