@@ -29,7 +29,9 @@ barGraphStats <- function(data, variable, byFactorNames) {
 } 
 
 
-BiomassNoduleAMF <- read.csv("Field_ANPP_NodNum.csv")
+BiomassNoduleAMF <- read.csv("Field_ANPP_NodNum.csv") #%>%
+  #mutate(NodNum = ifelse(NodNum==0, NA, NodNum))
+  
 
 Nfix <- read.csv("Field_GClog.csv") %>%
   group_by(Site, Treatment, Plant_ID) %>%
@@ -79,10 +81,131 @@ Summarized <- data2 %>%
   )
 
 
+
+# Step 1: Summarize to get one value per species-treatment-variable
+summary_means <- Summarized %>%
+  group_by(Treatment) %>%
+  summarise(across(starts_with("m"), mean, na.rm = TRUE), .groups = "drop")
+
+# Step 2: Pivot longer so that variable names are in one column
+summary_long <- summary_means %>%
+  pivot_longer(
+    cols = starts_with("m"),
+    names_to = "Variable",
+    values_to = "Value"
+  )
+
+# Step 3: Pivot wider so that treatments are columns
+summary_wide <- summary_long %>%
+  pivot_wider(
+    names_from = Treatment,
+    values_from = Value
+  )
+
+# Step 4: Calculate percent changes (column by column)
+PercChange <- summary_wide %>%
+  mutate(
+    # Comparisons relative to Control (C)
+    N_vs_C = (N - C) / C * 100,     # N relative to Control
+    NP_vs_C = (NP - C) / C * 100,   # NP relative to Control
+    
+    # Comparisons relative to Repeated N (N)
+    C_vs_N = (C - N) / N * 100,     # Control relative to N
+    NP_vs_N = (NP - N) / N * 100,   # NP relative to N
+    
+    # Comparisons relative to N+P (NP)
+    C_vs_NP = (C - NP) / NP * 100,  # Control relative to NP
+    N_vs_NP = (N - NP) / NP * 100   # N relative to NP
+  )
+
+
 # CHANGE SITE, REPLICATE, AND TREATMENT TO FACTOR #
 data2$Site <- as.factor(data2$Site)
 data2$Group <- as.factor(data2$Group)
 data2$Treatment <- as.factor(data2$Treatment)
+####################################################################################################
+# MIXED EFFECT REGRESSION MODELS - OCT 2025 #
+
+# Nod Num ~ AMF Colonization #
+res_A <- lmer(log1p(NodNum) ~ PercMC*Treatment + (1|Site:Group), data = data2)
+anova(res_A)
+summary(res_A)
+resA <- residuals(res_A, type="pearson")
+plot(resA)
+qqnorm(resA)
+simulateResiduals(fittedModel = res_A, plot = TRUE)
+ols_test_normality(resA)
+
+# AMF ~ Foliar P #
+res_B <- lmer(PercMC ~ P*Treatment + (1|Site:Group), data = data2)
+anova(res_B)
+summary(res_B)
+resB <- residuals(res_B, type="pearson")
+plot(resB)
+qqnorm(resB)
+simulateResiduals(fittedModel = res_B, plot = TRUE)
+ols_test_normality(resB)
+
+# NFix ~ Foliar N #
+res_C <- lmer(log1p(Rate) ~ N*Treatment + (1|Site) + (1|Site:Group), data = data2)
+anova(res_C)
+summary(res_C)
+resC <- residuals(res_C, type="pearson")
+plot(resC)
+qqnorm(resC)
+simulateResiduals(fittedModel = res_C, plot = TRUE)
+ols_test_normality(resC)
+# RUN MODEL, GET R2 AND PAIRWISE SIGNIFICANT DIFFERENCES #
+a <- lmer(log1p(Rate) ~ N*Treatment + (1|Site) + (1|Site:Group), data = data2)
+anova(a)
+r.squaredGLMM(a)
+slopes <- lstrends(a, ~Treatment, var = "N")
+summary(slopes, infer = c(TRUE, TRUE))
+
+
+ggplot(data2, aes(x = N, y = Rate)) +
+  geom_point(position = position_jitter(width = 0.05, height = 0.05), size = 6, alpha = 0.7) +  # smaller points
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Foliar N", y = "N-Fix") +
+  theme_minimal(base_size = 20)+
+  facet_wrap(~Treatment)
+
+
+
+# AMF ~ Biomass #
+res_D <- lmer(PercMC ~ ANPP*Treatment + (1|Site) + (1|Site:Group), data = data2)
+anova(res_D)
+summary(res_D)
+resD <- residuals(res_D, type="pearson")
+plot(resD)
+qqnorm(resD)
+simulateResiduals(fittedModel = res_D, plot = TRUE)
+ols_test_normality(resD)
+
+# NFix ~ Biomass #
+res_E <- lmer(log1p(Rate) ~ ANPP*Treatment + (1|Site), data = data2)
+summary(res_E)
+anova(res_E)
+resE <- residuals(res_E, type="pearson")
+plot(resE)
+qqnorm(resE)
+simulateResiduals(fittedModel = res_E, plot = TRUE)
+ols_test_normality(resE)
+
+# NFix ~ Nod Num #
+res_F <- lmer(log1p(Rate) ~ NodNum*Treatment + (1|Site), data = data2)
+summary(res_F)
+anova(res_F)
+resF <- residuals(res_F, type="pearson")
+plot(resF)
+qqnorm(resF)
+simulateResiduals(fittedModel = res_F, plot = TRUE)
+ols_test_normality(resF)
+ggplot(data2, aes(x = NodNum, y = Rate)) +
+  geom_point(position = position_jitter(width = 0.05, height = 0.05), size = 6, alpha = 0.7) +  # smaller points
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "NodNum", y = "N-Fix") +
+  theme_minimal(base_size = 20)
 
 
 
@@ -341,7 +464,7 @@ f <- lmer(log1p(Rate) ~ Treatment + (1|Site), data = data2) #(1|Site:Group) has 
 summary(f)
 anova(f)
 r.squaredGLMM(f)
-emmeans(f, pairwise ~ Treatment, adjust="BH") 
+emmeans(f, pairwise ~ Treatment, adjust="none") 
 
 
 ggplot(data=barGraphStats(data=data2, variable="Rate",byFactorNames=c("Treatment")),aes(x=Treatment, y=mean, fill=Treatment)) +
